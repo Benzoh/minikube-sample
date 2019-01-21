@@ -17,6 +17,20 @@ spec:
         image: benzoh/myapp:test
         ports:
         - containerPort: 80
+      - name: mydb
+        image: benzoh/mydb:test
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "root"
+        volumeMounts:
+        - name: data
+          # mountPath: /db
+          mountPath: /db-data
+      volumes:
+      - name: data
+        emptyDir: {}
 ---
 kind: Service
 apiVersion: v1
@@ -27,6 +41,10 @@ spec:
   selector:
     app: myapp
   ports:
-  - protocol: TCP
+  - name: myapp
+    protocol: TCP
     port: 80
     targetPort: 80
+  - name: mydb
+    protocol: TCP
+    port: 3306
