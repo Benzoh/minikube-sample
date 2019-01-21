@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: minikubetestapp
+spec:
+  containers:
+  - name: web-container
+    image: benzoh/minikubetestapp_web:0.1
+    ports:
+    - containerPort: 3000
+  - name: db-container
+    image: benzoh/minikubetestapp_db:0.1
+    ports:
+    - containerPort: 3306
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      value: "root"
+  #   volumeMounts:
+  #     - name: mysql-persistent-storage
+  #       mountPath: /var/lib/mysql
+  # volumes:
+  #   - name: mysql-persistent-storage
+  #     persistentVolumeClaim:
+  #       claimName: mysql-pv-claim
+  - name: phpmyadmin-container
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - containerPort: 8080

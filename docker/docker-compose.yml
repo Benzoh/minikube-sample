@@ -1,0 +1,24 @@
+version: '3'
+services:
+  web:
+    build: ./web
+    ports:
+      - "3000:3000"
+    volumes:
+      - /development/Sample/minikube-test-app/html:/var/www/html/
+    links:
+      - db
+  db:
+    build: ./db
+    volumes:
+      - db-data:/var/lib/mysql/data
+    ports:
+      - 3306:3306
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - 8080:80
+    links:
+      - db
+volumes:
+  db-data:
