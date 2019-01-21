@@ -16,7 +16,7 @@ spec:
       - name: myapp
         image: benzoh/myapp:test
         ports:
-        - containerPort: 80
+        - containerPort: 3000
       - name: mydb
         image: benzoh/mydb:test
         ports:
@@ -28,6 +28,13 @@ spec:
         - name: data
           # mountPath: /db
           mountPath: /db-data
+      - name: phpmyadmin
+        image: phpmyadmin/phpmyadmin
+        ports:
+        - containerPort: 80
+        env:
+        - name: PMA_HOST
+          value: mydb
       volumes:
       - name: data
         emptyDir: {}
@@ -43,8 +50,12 @@ spec:
   ports:
   - name: myapp
     protocol: TCP
-    port: 80
-    targetPort: 80
+    port: 3000
+    targetPort: 3000
   - name: mydb
     protocol: TCP
     port: 3306
+  - name: phpmyadmin
+    protocol: TCP
+    port: 8080
+    targetPort: 80
