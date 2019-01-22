@@ -16,28 +16,54 @@ spec:
       - name: myapp
         image: benzoh/myapp:test
         ports:
-        - containerPort: 3000
-      - name: mydb
-        image: benzoh/mydb:test
-        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  volumes:
+    - name: mysql-pv-storage
+      persistentVolumeClaim:
+       claimName: mysql-pv-claim
+  containers:
+    - image: benzoh/mydb:test
+      name: mysql
+      ports:
         - containerPort: 3306
-        env:
+          name: mysql
+      volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: mysql-pv-storage
+      env:
         - name: MYSQL_ROOT_PASSWORD
           value: "root"
-        volumeMounts:
-        - name: data
-          # mountPath: /db
-          mountPath: /db-data
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: phpmyadmin
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: phpmyadmin
+  template:
+    metadata:
+      labels:
+        app: phpmyadmin
+    spec:
+      containers:
       - name: phpmyadmin
         image: phpmyadmin/phpmyadmin
         ports:
         - containerPort: 80
         env:
         - name: PMA_HOST
-          value: mydb
-      volumes:
-      - name: data
-        emptyDir: {}
+          value: mysql-service
 ---
 kind: Service
 apiVersion: v1
@@ -50,15 +76,39 @@ spec:
   ports:
   - name: myapp
     protocol: TCP
-    port: 3000
-    targetPort: 3000
-  - name: mydb
-    protocol: TCP
-    port: 3306
-  - name: phpmyadmin
-    protocol: TCP
-    port: 8080
-    targetPort: 80
+    port: 80
+    # targetPort: 3000 # targetPortが公開ポート。設定がない場合、portの設定が反映する。
+  # - name: mydb
+  #   protocol: TCP
+  #   port: 3306
+  # - name: phpmyadmin
+  #   protocol: TCP
+  #   port: 80
+  #   targetPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mysql-service
+spec:
+  clusterIP: None
+  # type: NodePort
+  selector:
+    app: mysql
+  ports:
+  - port: 3306
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: phpmyadmin
+spec:
+  type: NodePort
+  selector:
+    app: phpmyadmin
+  ports:
+  - protocol: TCP
+    port: 80
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -71,3 +121,41 @@ spec:
     storage: 5Gi
   hostPath:
     path: /data/pv0001/
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+## serviceにselectorを設定しない場合独自にエンドポイントを設定する
+# kind: Endpoints
+# apiVersion: v1
+# metadata:
+#   name: myapp
+# subsets:
+#   - addresses:
+#       - ip: 1.2.3.4
+#     ports:
+#       - port: 9376
